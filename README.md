@@ -9,7 +9,7 @@ This project builds a command-line website auditing tool around student-written 
 
 Broken hyperlinks interrupt navigation and leave website maintainers with an incomplete picture of what needs repair. Checking a destination is only part of the problem: a useful checker must also identify the pages that contain the link, avoid repeatedly checking the same destination, and distinguish a missing page from a temporary or restricted response.
 
-The proposed system will discover hyperlinks, check their HTTP outcomes, and produce a report connecting each problematic destination to its source pages. A custom linked queue will manage traversal, a custom hash map and hash set will manage lookup and deduplication, and a directed graph will retain link relationships. An optional min-heap will schedule delayed retries. HTTP and HTML libraries will provide networking and parsing, while the student implements the structures that coordinate the crawl.
+The proposed system will discover hyperlinks, check their HTTP outcomes, and produce a report connecting each problematic destination to its source pages. A custom linked queue will manage traversal, a custom hash map and hash set will manage lookup and deduplication, and a directed graph will retain link relationships, min-heap will schedule delayed retries. HTTP and HTML libraries will provide networking and parsing.
 
 Evaluation will examine correctness, execution time, and Python memory allocations using controlled websites and repeatable synthetic workloads. The intended outcome is a usable utility and an explanation of the tradeoffs behind its design.
 
@@ -98,7 +98,7 @@ The canonical starting origin is the scheme, host, and effective port of the see
 
 Authentication, form submission, automatic website repair, distributed crawling, a hosted dashboard, database persistence, SEO scoring, image/script asset auditing, and fragment-target validation are outside the initial scope. The initial checker also does not infer "soft 404" pages from their text.
 
-A trie, AVL tree, or other additional structure should be introduced only with a concrete feature or experiment. The project does not require every structure covered in the course.
+A trie, a tree, or other additional structure should be introduced only with a concrete feature or experiment. The project does not require every structure covered in the course.
 
 ## 6. Data Structures and Responsibilities
 
@@ -130,53 +130,6 @@ The graph adds a relationship before the discovery check decides whether another
 | Python standard library | URL parsing, robots parsing, records, logging, CSV/JSON export, timing, and allocation measurements. [9][10] |
 
 The student's queue and indexes manage the crawl. HTTPX and Playwright perform network/browser work; Beautiful Soup supplies the parsed HTML tree. Library-owned internal structures are not claimed as student implementations.
-
-## 8. Architecture and Crawl Policy
-
-Separate the program into structure implementations, URL rules, link extraction, HTTP checking, crawl coordination, reporting, and the CLI. The components should be testable without contacting public websites.
-
-### Proposed starting defaults
-
-| Setting | Default |
-|---|---|
-| Maximum retained unique URLs | 500, including the seed and recorded skipped destinations |
-| Maximum crawl depth | 5; the seed is depth 0 |
-| Request timeout | 10 seconds, with an overall scan deadline as a separate limit |
-| Overall scan deadline | 10 minutes |
-| Maximum HTTP redirect hops | 10 |
-| Request spacing | At least 0.5 seconds between request starts to the same origin |
-| Maximum HTML body retained | 2 MiB of decoded response bytes |
-| Maximum extracted link occurrences per page | 2,000 |
-| Baseline concurrency | 1 |
-| External checking | Disabled; record external relationships as skipped |
-| JavaScript rendering | Disabled |
-| Optional retry limit | 2 additional attempts; 3 attempts total |
-| Optional concurrent mode | At most 5 active jobs globally and 2 per origin |
-
-These are project defaults, not externally mandated values. Limits are configurable. The scan report must record the values used and any resulting truncation.
-
-The URL cap bounds retained graph vertices as well as pending work. After the cap is reached, relationships between already-retained URLs can still be recorded. Count unretained link occurrences, and label coverage as incomplete.
-
-Request timeouts, robots restrictions, pacing, redirect limits, body limits, and scan cancellation must apply consistently. A body or crawl limit means incomplete inspection; it does not mean the affected page is missing.
-
-## 9. Outcome Classification
-
-| Observation | Reported category |
-|---|---|
-| Final HTTP 2xx | Reachable |
-| HTTP 404 or 410 | Broken / missing |
-| HTTP 401 or 403 | Restricted / unverifiable |
-| HTTP 429 | Rate limited; retry only if the optional retry policy permits |
-| HTTP 5xx | Server error; optionally retry |
-| Other HTTP 4xx | Client error / manual review |
-| Redirect loop, missing/invalid redirect target, or exceeded redirect bound | Redirect error |
-| DNS, connection, TLS, or timeout failure | Network error / unresolved |
-| Robots denial, depth/scope restriction, or other deliberate omission | Skipped, with a reason |
-| Accepted work left unfinished by cancellation or deadline | Unchecked |
-
-Retain the actual status code, error type, requested URL, effective URL, and redirect history. Redirect history is separate from the final outcome: a redirect that finishes at a working page is reachable with a redirect chain.
-
-Unexpected statuses, such as an unsolicited 304 response, are recorded for manual review. Restricted, rate-limited, and temporary failures are not automatically classified as permanently broken.
 
 ## 10. Reports and User Interaction
 
@@ -212,37 +165,6 @@ Graph and indexing storage is O(V + E), plus retry storage O(R) and bounded resp
 
 Real runtime also includes URL-string hashing, HTML parsing, network waits, redirects, and rendering. An O(V + E) traversal claim is not a claim that an entire web scan has that wall-clock complexity.
 
-## 12. Evaluation Methodology
-
-### Correctness
-
-Use local fixture websites and deterministic fake responses with known expected results. Include repeated links, cycles, multiple sources for one broken destination, relative paths, redirects, restricted responses, transient failures, and crawl limits.
-
-Every custom structure must also be tested independently, including hash collisions/resizing, queue boundary cases, and reciprocal graph adjacency.
-
-### Performance
-
-Run two separate evaluations:
-
-1. **Structure evaluation:** Replay identical synthetic discovery events through the custom implementation and a simple list-based baseline. Measure membership work, source lookup cost, execution time, and memory allocations.
-2. **Crawler evaluation:** Scan controlled local websites with fixed responses and delays. Measure elapsed time, completed checks, request counts, and resource limits. Compare sequential and concurrent modes only when both are implemented.
-
-Use several increasing dataset sizes, fixed random seeds, warm-up runs, and repeated measured runs. Record the software versions and machine details. Report median results and variation rather than selecting the fastest run.
-
-Measure Python allocations with tracemalloc and describe its limits; it does not measure a separate browser process's total memory. Browser-mode measurements must be reported separately.
-
-### Results
-
-No experiments have been run for this specification. Replace this paragraph with measured tables and a discussion only after the benchmark procedure has been executed. Do not invent speedups, coverage percentages, or resume metrics.
-
-## 13. Limitations and Threats to Validity
-
-HTTP availability is an observation at a particular time. A page may require authentication, serve a login screen with status 200, block automated clients, or generate links only after interaction. An initially successful response does not prove that the content is correct.
-
-A bounded crawl covers only the retained, discovered part of a site. Unlinked pages, skipped sections, omitted fragments, and content beyond configured limits are not verified.
-
-Network latency can obscure differences between data structures. Controlled benchmarks isolate structure behavior, while local end-to-end tests demonstrate application behavior. Neither should be presented as a universal speed guarantee.
-
 ## 14. Academic Deliverables
 
 The student will produce:
@@ -253,7 +175,6 @@ The student will produce:
 4. A written report covering the problem, design, complexity, experiments, results, and limitations.
 5. Program execution and a presentation in class or through a video recording.
 
-Grading weight, presentation length, and submission dates remain subject to the instructor's agreement.
 
 ## 15. References
 
