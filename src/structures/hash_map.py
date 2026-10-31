@@ -1,7 +1,7 @@
 class HashMap:
     def __init__(self, capacity=8):
-        if capacity < 1:
-            raise ValueError("Capacity must be positive")
+        if not isinstance(capacity, int) or capacity < 1:
+            raise ValueError("Capacity must be a positive integer")
 
         self.buckets = []
         for i in range(capacity):

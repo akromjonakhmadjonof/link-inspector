@@ -43,5 +43,12 @@ class DirectedGraph:
     def vertices(self):
         return self.outgoing.keys()
 
+    def edges(self):
+        edges = []
+        for source in self.vertices():
+            for destination in self.neighbors(source):
+                edges.append((source, destination))
+        return edges
+
     def vertex_count(self):
         return self.outgoing.size()
