@@ -62,6 +62,8 @@ def resolve_url(href, page_url):
         return None
 
     try:
+        if urlsplit(href).scheme:
+            return normalize_url(href)
         return normalize_url(urljoin(base_url, href))
     except ValueError:
         return None

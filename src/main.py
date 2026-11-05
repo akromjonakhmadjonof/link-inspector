@@ -1,5 +1,7 @@
 import argparse
 
+from .urls import validate_start_url
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -7,7 +9,11 @@ def main():
     )
     parser.add_argument("start_url", help="Website URL to start checking")
     args = parser.parse_args()
-    print(args.start_url)
+    try:
+        start_url = validate_start_url(args.start_url)
+    except ValueError as error:
+        parser.error(str(error))
+    print(start_url)
 
 
 main()
