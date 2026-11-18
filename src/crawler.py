@@ -1,5 +1,6 @@
 from .checker import check_url
 from .parser import extract_links
+from .robots import Robots
 from .structures.directed_graph import DirectedGraph
 from .structures.hash_map import HashMap
 from .structures.hash_set import HashSet
@@ -9,6 +10,7 @@ from .urls import same_origin, validate_start_url
 
 def crawl(start_url, client):
     start_url = validate_start_url(start_url)
+    robots = Robots(client)
     queue = Queue()
     scheduled = HashSet()
     results = HashMap()
@@ -24,7 +26,7 @@ def crawl(start_url, client):
 
     while not queue.is_empty():
         url = queue.dequeue()
-        result, html = check_url(url, client)
+        result, html = check_url(url, client, robots)
         results.put(url, result)
         final_url = result["final_url"]
         graph.add_vertex(final_url)

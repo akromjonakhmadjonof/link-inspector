@@ -1,6 +1,12 @@
 import httpx
+import pytest
 
 from src.crawler import crawl
+
+
+@pytest.fixture(autouse=True)
+def skip_request_pause(monkeypatch):
+    monkeypatch.setattr("src.robots.sleep", lambda seconds: None)
 
 
 def test_crawls_in_breadth_first_order():
@@ -15,6 +21,8 @@ def test_crawls_in_breadth_first_order():
 
     def handler(request):
         assert request.url.host == "club.test"
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
         paths.append(request.url.path)
         return httpx.Response(
             200,
@@ -34,6 +42,8 @@ def test_crawls_relative_links_from_final_url():
 
     def handler(request):
         path = request.url.path
+        if path == "/robots.txt":
+            return httpx.Response(404)
         paths.append(path)
         if path == "/old":
             return httpx.Response(302, headers={"Location": "/docs/"})
@@ -63,6 +73,8 @@ def test_duplicate_anchors_and_cycles_are_checked_once_per_crawl():
     def handler(request):
         assert request.method == "GET"
         path = request.url.path
+        if path == "/robots.txt":
+            return httpx.Response(404)
         assert path not in paths
         paths.append(path)
         return httpx.Response(
@@ -82,6 +94,8 @@ def test_different_query_values_are_separate_jobs():
     urls = []
 
     def handler(request):
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
         urls.append(str(request.url))
         html = ""
         if request.url.path == "/start":
@@ -110,6 +124,8 @@ def test_records_both_sources_for_one_missing_url():
 
     def handler(request):
         path = request.url.path
+        if path == "/robots.txt":
+            return httpx.Response(404)
         paths.append(path)
         if path == "/missing":
             return httpx.Response(404)
@@ -136,6 +152,8 @@ def test_results_keep_original_urls_after_redirects_and_missing_pages():
 
     def handler(request):
         path = request.url.path
+        if path == "/robots.txt":
+            return httpx.Response(404)
         paths.append(path)
         if path == "/old":
             return httpx.Response(302, headers={"Location": "/manual/"})
@@ -172,6 +190,8 @@ def test_results_are_independent_between_scans():
     requests = []
 
     def handler(request):
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
         requests.append(str(request.url))
         return httpx.Response(200, headers={"Content-Type": "text/html"}, text="")
 
@@ -190,6 +210,8 @@ def test_results_are_independent_between_scans():
 
 def test_results_keep_failed_requests_without_html():
     def handler(request):
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
         raise httpx.ReadTimeout("Timed out", request=request)
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:

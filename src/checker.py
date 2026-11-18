@@ -25,7 +25,7 @@ def status_outcome(status_code):
     return "unverified", "Unexpected HTTP status"
 
 
-def check_url(url, client):
+def check_url(url, client, robots=None):
     requested_url = validate_start_url(url)
     current_url = requested_url
     visited = [requested_url]
@@ -34,8 +34,16 @@ def check_url(url, client):
 
     while True:
         status_code = None
+        if robots is not None:
+            allowed, reason = robots.can_fetch(current_url)
+            if not allowed:
+                category = "skipped"
+                break
         try:
-            response = client.get(current_url, follow_redirects=False)
+            if robots is None:
+                response = client.get(current_url, follow_redirects=False)
+            else:
+                response = robots.get(current_url)
         except httpx.TimeoutException:
             reason = "Request timed out"
             break
