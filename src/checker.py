@@ -31,6 +31,8 @@ def check_url(url, client, robots=None):
     visited = [requested_url]
     category = "unverified"
     html = None
+    retryable = False
+    retry_after = None
 
     while True:
         status_code = None
@@ -45,7 +47,12 @@ def check_url(url, client, robots=None):
             else:
                 response = robots.get(current_url)
         except httpx.TimeoutException:
+            retryable = True
             reason = "Request timed out"
+            break
+        except httpx.ConnectError:
+            retryable = True
+            reason = "Could not complete the request"
             break
         except (httpx.RequestError, httpx.InvalidURL):
             reason = "Could not complete the request"
@@ -54,6 +61,9 @@ def check_url(url, client, robots=None):
         status_code = response.status_code
         if status_code not in REDIRECT_CODES:
             category, reason = status_outcome(status_code)
+            retryable = status_code in (429, 503)
+            if retryable:
+                retry_after = response.headers.get("Retry-After")
             content_type = response.headers.get("content-type", "")
             media_type = content_type.split(";", 1)[0].strip().lower()
             if category == "ok" and media_type == "text/html":
@@ -84,5 +94,7 @@ def check_url(url, client, robots=None):
         "status_code": status_code,
         "category": category,
         "reason": reason,
+        "retryable": retryable,
+        "retry_after": retry_after,
     }
     return result, html

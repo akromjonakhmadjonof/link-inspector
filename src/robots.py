@@ -31,7 +31,11 @@ class Robots:
                 reason = "Could not read robots.txt"
             else:
                 if 200 <= response.status_code < 300:
-                    parser.parse(response.text.splitlines())
+                    if response.text.lstrip().lower().startswith(("<!doctype html", "<html")):
+                        parser = None
+                        reason = "robots.txt returned an HTML page instead of rules"
+                    else:
+                        parser.parse(response.text.splitlines())
                 elif response.status_code in (404, 410):
                     parser.parse([])
                 else:

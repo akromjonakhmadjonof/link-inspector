@@ -7,12 +7,12 @@ from src.parser import extract_links
 def test_guide_example():
     html = '''
         <a href="../join#form">Join</a>
-        <a href="mailto:team@club.test">Email</a>
+        <a href="mailto:team@akhmadjonoff.uz">Email</a>
         <img src="/logo.png">
     '''
 
-    assert extract_links(html, "https://club.test/events/today/") == [
-        "https://club.test/events/join"
+    assert extract_links(html, "https://akhmadjonoff.uz/events/today/") == [
+        "https://akhmadjonoff.uz/events/join"
     ]
 
 
@@ -29,10 +29,10 @@ def test_ignored_links_and_repeated_anchors():
         <a href="/one#again">First again</a>
     '''
 
-    assert extract_links(html, "https://club.test/") == [
-        "https://club.test/one",
-        "https://club.test/two?page=2&order=asc",
-        "https://club.test/one",
+    assert extract_links(html, "https://akhmadjonoff.uz/") == [
+        "https://akhmadjonoff.uz/one",
+        "https://akhmadjonoff.uz/two?page=2&order=asc",
+        "https://akhmadjonoff.uz/one",
     ]
 
 
@@ -41,21 +41,21 @@ def test_first_valid_base():
         <base>
         <base href="https://">
         <base href="../docs/">
-        <base href="https://other.test/ignored/">
+        <base href="https://www.akhmadjonoff.uz/ignored/">
         <a href="notes.html">Notes</a>
     '''
 
-    assert extract_links(html, "https://club.test/events/today/") == [
-        "https://club.test/events/docs/notes.html"
+    assert extract_links(html, "https://akhmadjonoff.uz/events/today/") == [
+        "https://akhmadjonoff.uz/events/docs/notes.html"
     ]
 
 
 def test_invalid_base_uses_page_url():
-    html = '<base href="mailto:team@club.test"><a href="notes.html">Notes</a>'
-    assert extract_links(html, "https://club.test/manual/") == [
-        "https://club.test/manual/notes.html"
+    html = '<base href="mailto:team@akhmadjonoff.uz"><a href="notes.html">Notes</a>'
+    assert extract_links(html, "https://akhmadjonoff.uz/manual/") == [
+        "https://akhmadjonoff.uz/manual/notes.html"
     ]
-    assert extract_links("", "https://club.test/manual/") == []
+    assert extract_links("", "https://akhmadjonoff.uz/manual/") == []
 
 
 def test_relative_link_after_redirect():
@@ -72,8 +72,8 @@ def test_relative_link_after_redirect():
         )
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
-        result, html = check_url("https://club.test/old", client)
+        result, html = check_url("https://akhmadjonoff.uz/old", client)
 
     assert result["category"] == "ok"
-    assert extract_links(html, result["final_url"]) == ["https://club.test/manual/notes.html"]
+    assert extract_links(html, result["final_url"]) == ["https://akhmadjonoff.uz/manual/notes.html"]
     assert paths == ["/old", "/manual/"]
